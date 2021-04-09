@@ -1,51 +1,22 @@
 from pyupbit import WebSocketManager
-import sys
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
 
-class Worker(QThread):
-    recv = pyqtSignal(dict)
-
-    def run(self):
-        # create websocket for Bithumb
-        wm = WebSocketManager("ticker", ["KRW-BTC"])
-        while True:
-            data = wm.get()
-            print(data)
-            self.recv.emit(data)
+def goes_up_change_rate(prev_data, rt_data):
+    if prev_data['change'] == 'RISE' and rt_data['change'] == 'RISE':
+        if prev_data['change_price'] < rt_data['change_price']:
+            print(rt_data['code'], rt_data['trade_price'], rt_data['change_price'] - prev_data['change_price'])
 
 
-class MyWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        label = QLabel("BTC", self)
-        label.move(20, 20)
-
-        self.price = QLabel("", self)
-        self.price.move(80, 20)
-        self.price.resize(100, 20)
-
-        button = QPushButton("Start", self)
-        button.move(20, 50)
-        button.clicked.connect(self.click_btn)
-
-        self.th = Worker()
-        self.th.recv.connect(self.receive_msg)
-
-    @pyqtSlot(dict)
-    def receive_msg(self, data):
-        print(data)
-        close_price = data.get("trade_price")
-        self.price.setText(str(close_price))
-
-    def click_btn(self):
-       self.th.start()
+def run(ticker):
+    wm = WebSocketManager("ticker", [ticker])
+    prev_data = {'change': '-'}
+    while True:
+        data = wm.get()
+        goes_up_change_rate(prev_data, data)
+        prev_data = data
+    wm.terminate()
 
 
-if __name__ == '__main__':
-   app = QApplication(sys.argv)
-   mywindow = MyWindow()
-   mywindow.show()
-   app.exec_()
+if __name__ == "__main__":
+    for ticker in ["KRW-XRP", "KRW-BTC", "KRW-PCI"]:
+        run(ticker)
